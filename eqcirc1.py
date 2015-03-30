@@ -29,7 +29,6 @@ python eqcirc1.py inputdatafile.txt > outdata.txt
  
 """
 import numpy as np
-from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
 import sys
@@ -65,8 +64,6 @@ data = np.loadtxt(infile)# get array out of input file
 x,ydat = data.T # parse out frequency and admittance data
 #Ymin = np.min(ydat)# didn't use because we need the index anyway
 #Ymax = np.max(ydat)# and my way is probably faster.
-f = 0
-Ymax = 0
 imax = data.shape[0]
 kmax = 0
 for k in range(imax):
