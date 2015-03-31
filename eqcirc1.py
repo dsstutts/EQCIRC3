@@ -73,11 +73,7 @@ howpublished = {\url{https://github.com/MSTESG/EQCIRC1.git}},
 year = {2015}}
 
 """
-import numpy as np
-import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
-import sys
-import fileinput
 from pylab import *
 
 # Define functions:
@@ -94,7 +90,7 @@ def C0_i(Ymin, Ymax, fr, fa):# Parallel capacitance estimate
 
 def R1_i(Ymin,Ymax, fr, fa, C0):# Motional resistance estimate
   return (-0.4e1*np.pi**2*fr**2*C0**2+Ymax**2)**(-0.1e1/0.2e1)
-	
+
 def L1_i(fr,fa,C0):# Motional inductance estimate
   return 0.1e1 / np.pi ** 2 /(fa**2 - fr**2)/C0/0.4e1
 
@@ -123,8 +119,8 @@ fr = data[kmax,0]
 kmin = kmax
 
 for k in xrange(kmin,imax):
-	if data[k,1]<data[kmin,1]:
-		kmin = k
+    if data[k,1]<data[kmin,1]:
+        kmin = k
 
 Ymin = data[kmin,1]
 fa = data[kmin,0]
