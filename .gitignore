@@ -1,0 +1,5 @@
+# Ignore the following files and subdirectories:
+*.png
+*.eps
+**/.idea/
+**/.ipynb_checkpoints/
