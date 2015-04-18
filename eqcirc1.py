@@ -135,13 +135,21 @@ def rez(z, ydat, f):  # Residual function
 infile = sys.argv[1]
 data = open(infile, "r")  # get array out of input file
 numline = 0
-  # read the 21st through 821 lines from the data file
-  # and fill x,y lists with floating point numbers:
+# Count the number of lines in the data file:
 for line in data:
-    if numline > 20 and numline < 822:
+    numline +=1
+
+# Calculate the number of magnitude data points:
+data = open(infile, "r") # Reload
+nummagpts = (numline - 1 - 26)/2
+linecount = 0
+  # read the 21st through total lines from the data file
+  # and fill x,y lists with only the magnitude data:
+for line in data:
+    if linecount > 20 and linecount < nummagpts+21:
         x.append(map(float, (line[0:31]).split())[0])
         ydat.append(map(float, (line[0:31]).split())[1])
-    numline += 1
+    linecount += 1
 xx = array(x)
 yy = array(ydat)
 
@@ -213,13 +221,32 @@ print "Q = ", Q, "\n"
 # Put the optimal values in an array:
 coeffs = [C0, R1, L1, C1]
 
+# Calculate RMS error:
+
+rmserr = sqrt(sum((yy-y(xx,coeffs))**2)/len(xx))
+
+# Calculate plot annotation positions:
+dely = (Ymax-Ymin)/20
+noteymax = 0.7*Ymax
+
 # Plot the model and the data:
 plt.plot(xx, y(xx, coeffs), 'r-', label='model')
-plt.plot(xx, ydat, 'go', label='data')
+plt.plot(xx, yy, 'go', label='data')
+plt.annotate('fr = '+str(fr),xy=(fa,noteymax))
+plt.annotate('fa = '+str(fa),xy=(fa,noteymax-dely))
+plt.annotate('C0 = '+str(C0),xy=(fa,noteymax-2*dely))
+plt.annotate('R1 = '+str(R1),xy=(fa,noteymax-3*dely))
+plt.annotate('L1 = '+str(L1),xy=(fa,noteymax-4*dely))
+plt.annotate('C1 = '+str(C1),xy=(fa,noteymax-5*dely))
+plt.annotate('Q = '+str(Q),xy=(fa,noteymax-6*dely))
+plt.annotate('RMS Error = '+str(rmserr),xy=(fa,noteymax-7*dely))
 legend = plt.legend(loc='upper right', shadow=True, fontsize='large')
 xlabel('f (Hz)')
 ylabel('Y (A/V)')
 grid(True)
 # Put a nice background color on the legend:
 legend.get_frame().set_facecolor('#00FFCC')
+# Save plot as PNG:
+plotname = infile.split('.')[0]+"model"
+plt.savefig(plotname)
 plt.show()
