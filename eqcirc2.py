@@ -1,5 +1,5 @@
 ####################--
-# File: eqcirc2.py
+# File: eqcirc3.py
 # Equivalent Circuit Parameter Estimator for Piezoelectric Structures
 # Author: D. S. Stutts
 # Associate Professor of Mechanical Engineering
@@ -10,8 +10,15 @@
 # Original release: eqcirc2.py Version 0.1.0 3-29-2015
 # Modified and renamed to eqcirc2.py to input impedance 4-17-2015:DSS
 # Now also automatically determines the number of points to process.
+#
+# Modified for partial Python 3 compatibility, moved results printing
+# into functions, refined plot formatting, and added 
+# flag to set the saved figure format. 4-26-2016: DSS
+# Added phase model. 7-8-2016: DSS
 ####################--
+
 """
+
 This program calculates the equivalent 
 circuit parameters from frequency-impedance magnitude
 magnitude data stored in the standard
@@ -46,7 +53,7 @@ eqcirc2.py calculates the following outputs stdout:
 (6) C1 (the motional capacitance)
 (7) Q (the series R1L1C1 resonance 
        quality factor = 1/2zeta)
-(8) RMS Error
+(8) RMS Deviation
 
 A graph of the data and model is also produced.
 
@@ -91,15 +98,17 @@ of this software include the following citation:
 author =   {Stutts, D. S.},
 title = {{eqcirc2.py}: {Equivalent Circuit Parameter Estimator
 for Piezoelectric Structures.}},
-howpublished = {\url{https://github.com/MSTESG/EQCIRC1.git}},
+howpublished = {\\url{https://github.com/MSTESG/EQCIRC1.git}},
 year = {2015}}
 
 """
 
 
 from pylab import *
+import sys
 from scipy.optimize import leastsq
-#from matplotlib import pyplot
+# Test for Python version:
+cur_version = sys.version_info
 # Initialize some lists:
 ydat = []
 x = []
@@ -113,7 +122,25 @@ def y(f, z):  # Admittance model
     -0.4e1 * z[0] * z[3] * z[2] * np.pi ** 2 * f ** 2
     + z[0]+z[3])**2)*((-0.4e1 * z[3]*z[2]*np.pi ** 2*f**2+0.1e1)**2
     + 0.4e1*z[1]**2*z[3]**2*np.pi**2*f**2)**(-0.1e1/0.2e1)
+    
+# Real admittance:
+Y_R = lambda f,cg,cg5,cg3,cg1: cg5 * cg1 ** 2 / (16 * cg ** 2 * 
+cg1 ** 2 * cg3 ** 2 * math.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 * 
+math.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 * math.pi ** 2 
+* f ** 2 - 8 * cg * cg1 ** 2 * cg3 * math.pi ** 2 * f ** 2 + cg ** 2 + 
+2 * cg * cg1 + cg1 ** 2)
 
+# Imaginary admittance:
+Y_I = lambda f,cg,cg5,cg3,cg1: -0.1e1 / math.pi / f * (16 * cg * cg1 ** 2
+ * cg3 ** 2 * math.pi ** 4 * f ** 4 + 4 * cg * cg1 ** 2 * math.pi ** 2 
+ * cg5 ** 2 * f ** 2 - 8 * cg * cg1 * cg3 * math.pi ** 2 * f ** 2 - 
+ 4 * cg1 ** 2 * cg3 * math.pi ** 2 * f ** 2 + cg + cg1) / (16 * cg ** 2 * 
+ cg1 ** 2 * cg3 ** 2 * math.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 * 
+ math.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 * 
+ math.pi ** 2 * f ** 2 - 8 * cg * cg1 ** 2 * cg3 * math.pi ** 2 * f ** 2 
+ + cg ** 2 + 2 * cg * cg1 + cg1 ** 2) / 2
+phi = lambda f, cg,cg5,cg3,cg1:180*np.arctan2(Y_I(f,cg,cg5,cg3,cg1),
+Y_R(f,cg,cg5,cg3,cg1)/np.pi)
 
 def C0_i(Ymin, Ymax, fr, fa):  # Parallel capacitance estimate
     return np.sqrt(0.2e1*(fa ** 2 - fr**2)*Ymin**2/np.pi**2/fa**4
@@ -135,7 +162,62 @@ def C1_i(fr, fa, C0):  # Motional capacitance estimate
 
 def rez(z, ydat, f):  # Residual function
     return ydat - y(f, z)
-
+    
+def py3print():
+    '''
+    Author: D. S. Stutts
+    4-22-2016
+    This function uses the print() function 
+    according to the Python 3.x.x requirements.
+    '''
+    print( "Ymax = ", Ymax, " at fr = ", fr, "\n")
+    print( "Ymin = ", Ymin, " at fa = ", fa, "\n")
+    print( "fr = ", fr, "\n")
+    print( "fa = ", fa, "\n")
+# Initial estimates:
+    print("C0i = ", C0i,"\n")
+    print("R1i = ", R1i,"\n")
+    print("L1i = ", L1i,"\n")
+    print("C1i = ", C1i,"\n")
+    print("Qi = ", Qi,"\n")
+# Optimal estimates:
+    print( "C0 = ", C0, "\n")
+    print( "R1 = ", R1, "\n")
+    print( "L1 = ", L1, "\n")
+    print( "C1 = ", C1, "\n")
+    print( "Q = ", Q, "\n")
+    print("RMS Diviation = ", rmserr,"\n")
+    
+#def py2print():# Causes syntax error in Python 3.x.x.
+#    '''
+#    Author: D. S. Stutts
+#    4-22-2016
+#    This function uses the print operator 
+#    according to the Python 2.x.x requirements.
+#    '''
+#    print "Ymax = ", Ymax, " at fr = ", fr, "\n"
+#    print "Ymin = ", Ymin, " at fa = ", fa, "\n"
+#    print "fr = ", fr, "\n"
+#    print "fa = ", fa, "\n"
+## Initial estimates:
+#    print "C0i = ", C0i,"\n"
+#    print "R1i = ", R1i,"\n"
+#    print "L1i = ", L1i,"\n"
+#    print "C1i = ", C1i,"\n"
+#    print "Qi = ", Qi,"\n"
+## Optimal estimates:    
+#    print "C0 = ", C0, "\n"
+#    print "R1 = ", R1, "\n"
+#    print "L1 = ", L1, "\n"
+#    print "C1 = ", C1, "\n"
+#    print "Q = ", Q, "\n"
+#    print "RMS Diviation = ", rmserr,"\n"
+    
+# Set the desired resolution:
+res = 1200# Note that a resolution of 1200 dpi will yeild a large PNG
+# file, but a much smaller EPS file.
+#plottype = ''# Defaults to PNG
+plottype = 'EPS'
 # Input data file on command line:	
 infile = sys.argv[1]
 data = open(infile, "r")  # get array out of input file
@@ -150,11 +232,20 @@ nummagpts = (numline - 1 - 26)/2
 linecount = 0
   # read the 21st through total lines from the data file
   # and fill x,y lists with floating point numbers:
-for line in data:
-    if linecount > 20 and linecount < nummagpts+21:
-        x.append(map(float, (line[0:31]).split())[0])
-        zdat.append(map(float, (line[0:31]).split())[1])
-    linecount += 1
+if cur_version[0]==3:# This is necesary due to the change in the type
+    for line in data:# returned by the map function in Python 3.x.x.
+        if linecount > 20 and linecount < nummagpts+21:# relative to 2.x.x.
+            freqs = list(map(float, (line[0:31]).split()))
+            impedances = list(map(float, (line[0:31]).split()))
+            x.append(freqs[0])
+            zdat.append(impedances[1])
+        linecount += 1
+else:
+    for line in data:
+        if linecount > 20 and linecount < nummagpts+21:
+            x.append(map(float, (line[0:31]).split())[0])
+            zdat.append(map(float, (line[0:31]).split())[1])
+        linecount += 1
 xx = array(x)
 zin = array(zdat)
 
@@ -174,15 +265,12 @@ fr = x[kmax]
 
 kmin = kmax
 
-for k in xrange(kmin, imax):
+for k in range(kmin, imax):
     if yy[k] < yy[kmin]:
         kmin = k
 
 Ymin = yy[kmin]
 fa = x[kmin]
-
-print "Ymax = ", Ymax, " at fr = ", fr, "\n"
-print "Ymin = ", Ymin, " at fa = ", fa, "\n"
 
 # Estimate initial parameter values:
 
@@ -190,18 +278,7 @@ C0i = C0_i(Ymin, Ymax, fr, fa)
 R1i = R1_i(Ymin, Ymax, fr, fa, C0_i(Ymin, Ymax, fr, fa))
 L1i = L1_i(fr, fa, C0_i(Ymin, Ymax, fr, fa))
 C1i = C1_i(fr, fa, C0_i(Ymin, Ymax, fr, fa))
-"""
-# Print the initial values: (uncomment if you want 
-# to see the approximate values)
-print "fr = ", fr,"\n"
-print "fa = ", fa,"\n"
-print "C0i = ", C0i,"\n"
-print "R1i = ", R1i,"\n"
-print "L1i = ", L1i,"\n"
-print "C1i = ", C1i,"\n"
 Qi = 1/(R1i*np.sqrt(C1i/L1i))
-print "Qi = ", Qi,"\n"
-"""
 # Create initial guess array:
 z0 = [C0i, R1i, L1i, C1i]
 
@@ -216,44 +293,61 @@ Q = 1 / (R1 * np.sqrt(C1 / L1))
 fr = 1 / np.sqrt(L1 * C1) / 0.2e1 / np.pi
 fa = np.sqrt((C0 + C1) / C0 / C1 / L1) / np.pi / 0.2e1
 
-# Print the results:
-print "fr = ", fr, "\n"
-print "fa = ", fa, "\n"
-print "C0 = ", C0, "\n"
-print "R1 = ", R1, "\n"
-print "L1 = ", L1, "\n"
-print "C1 = ", C1, "\n"
-print "Q = ", Q, "\n"
-
-# Put the optimal values in an array:
+# Put the optimal values in a list:
 coeffs = [C0, R1, L1, C1]
 
 # Calculate RMS error:
 
 rmserr = sqrt(sum((yy-y(xx,coeffs))**2)/len(xx))
-
+# Print the results to std out:
+# Unfortunately, there is currently no way to 
+# define a function using the Python 2 print operator
+# in Python 3, because it causes a syntax error, so
+# you'll either have to put up with the extra parentheses when
+# using Python 2 to run this code, or simply comment and uncomment.
+cur_version = sys.version_info# the approrpriate lines.
+if cur_version[0]==3:
+    py3print()
+else:
+    py2print()
+    #py3print() # This also works in Python 2, but prints the 
+                # parentheses.
 # Calculate plot annotation positions:
-dely = (Ymax-Ymin)/20
+delx = (fa-fr)/10.0
+dely = (Ymax-Ymin)/20.0
 noteymax = 0.7*Ymax
 # Plot the model and the data:
-plt.plot(xx, y(xx, coeffs), 'r-', label='model')
-plt.plot(xx, yy, 'go', label='data')
-plt.annotate('fr = '+str(fr),xy=(fa,noteymax))
-plt.annotate('fa = '+str(fa),xy=(fa,noteymax-dely))
-plt.annotate('C0 = '+str(C0),xy=(fa,noteymax-2*dely))
-plt.annotate('R1 = '+str(R1),xy=(fa,noteymax-3*dely))
-plt.annotate('L1 = '+str(L1),xy=(fa,noteymax-4*dely))
-plt.annotate('C1 = '+str(C1),xy=(fa,noteymax-5*dely))
-plt.annotate('Q = '+str(Q),xy=(fa,noteymax-6*dely))
-plt.annotate('RMS Error = '+str(rmserr),xy=(fa,noteymax-7*dely))
+plt.figure(figsize=(8,7),dpi=res)
+plt.subplot(211)
+plt.plot(xx, y(xx, coeffs), 'r-', label='model') # file, but a much
+plt.plot(xx, yy, 'go', label='data')# smaller EPS file.
+plt.annotate('fr = '+'{: 3.3e}'.format(fr),xy=(fa-delx,noteymax))
+plt.annotate('fa = '+'{: 3.3e}'.format(fa),xy=(fa-delx,noteymax-1.1*dely))
+plt.annotate('C0 = '+'{: 3.3e}'.format(C0),xy=(fa-delx,noteymax-2.2*dely))
+plt.annotate('R1 = '+'{: 3.3e}'.format(R1),xy=(fa-delx,noteymax-3.3*dely))
+plt.annotate('L1 = '+'{: 3.3e}'.format(L1),xy=(fa-delx,noteymax-4.4*dely))
+plt.annotate('C1 = '+'{: 3.3e}'.format(C1),xy=(fa-delx,noteymax-5.5*dely))
+plt.annotate('Q = '+'{: 3.3e}'.format(Q),xy=(fa-delx,noteymax-6.6*dely))
+plt.annotate('RMS Dev. = '+'{: 3.2e}'.format(rmserr),xy=(fa-delx,noteymax-7.7*dely))
 
 legend = plt.legend(loc='upper right', shadow=True, fontsize='large')
-xlabel('f (Hz)')
-ylabel('Y (A/V)')
+xlabel(r"$f$ (Hz)")
+ylabel(r"$\mathscr{Y}$ (A/V)")
 grid(True)
 # Put a nice background color on the legend:
 legend.get_frame().set_facecolor('#00FFCC')
+plt.subplot(212)
+plt.plot(xx, phi(xx, C0, R1, L1, C1), 'r-', label='model')
+xlabel(r"$f$ (Hz)")
+ylabel(r"$\phi$ (degrees)")
+legend = plt.legend(loc='upper right', shadow=True, fontsize='large')
+legend.get_frame().set_facecolor('#00FFCC')
+if plottype=='PNG' or plottype=='':# Default to PNG
 # Save plot as PNG:
-plotname = infile.split('.')[0]+"model"
-plt.savefig(plotname)
+    plotname = infile.split('.')[0]+"model"+".PNG"
+    plt.savefig(plotname,format='png', dpi=res)
+else:# Save plot as EPS:
+    plotname = infile.split('.')[0]+"model"+".eps"
+    plt.savefig(plotname,format='eps', dpi=res)
+grid(True)
 plt.show()
