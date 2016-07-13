@@ -104,9 +104,14 @@ year = {2015}}
 """
 
 
-from pylab import *
+#from pylab import *
 import sys
 from scipy.optimize import leastsq
+import numpy as np
+from numpy import array
+from numpy import sqrt
+import matplotlib.pyplot as plt
+#from matplotlib import figure
 # Test for Python version:
 cur_version = sys.version_info
 # Initialize some lists:
@@ -125,19 +130,19 @@ def y(f, z):  # Admittance model
     
 # Real admittance:
 Y_R = lambda f,cg,cg5,cg3,cg1: cg5 * cg1 ** 2 / (16 * cg ** 2 * 
-cg1 ** 2 * cg3 ** 2 * math.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 * 
-math.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 * math.pi ** 2 
-* f ** 2 - 8 * cg * cg1 ** 2 * cg3 * math.pi ** 2 * f ** 2 + cg ** 2 + 
+cg1 ** 2 * cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 * 
+np.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 * np.pi ** 2 
+* f ** 2 - 8 * cg * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2 + cg ** 2 + 
 2 * cg * cg1 + cg1 ** 2)
 
 # Imaginary admittance:
-Y_I = lambda f,cg,cg5,cg3,cg1: -0.1e1 / math.pi / f * (16 * cg * cg1 ** 2
- * cg3 ** 2 * math.pi ** 4 * f ** 4 + 4 * cg * cg1 ** 2 * math.pi ** 2 
- * cg5 ** 2 * f ** 2 - 8 * cg * cg1 * cg3 * math.pi ** 2 * f ** 2 - 
- 4 * cg1 ** 2 * cg3 * math.pi ** 2 * f ** 2 + cg + cg1) / (16 * cg ** 2 * 
- cg1 ** 2 * cg3 ** 2 * math.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 * 
- math.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 * 
- math.pi ** 2 * f ** 2 - 8 * cg * cg1 ** 2 * cg3 * math.pi ** 2 * f ** 2 
+Y_I = lambda f,cg,cg5,cg3,cg1: -0.1e1 / np.pi / f * (16 * cg * cg1 ** 2
+ * cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg * cg1 ** 2 * np.pi ** 2 
+ * cg5 ** 2 * f ** 2 - 8 * cg * cg1 * cg3 * np.pi ** 2 * f ** 2 - 
+ 4 * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2 + cg + cg1) / (16 * cg ** 2 * 
+ cg1 ** 2 * cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 * 
+ np.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 * 
+ np.pi ** 2 * f ** 2 - 8 * cg * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2 
  + cg ** 2 + 2 * cg * cg1 + cg1 ** 2) / 2
 phi = lambda f, cg,cg5,cg3,cg1:180*np.arctan2(Y_I(f,cg,cg5,cg3,cg1),
 Y_R(f,cg,cg5,cg3,cg1)/np.pi)
@@ -331,15 +336,15 @@ plt.annotate('Q = '+'{: 3.3e}'.format(Q),xy=(fa-delx,noteymax-6.6*dely))
 plt.annotate('RMS Dev. = '+'{: 3.2e}'.format(rmserr),xy=(fa-delx,noteymax-7.7*dely))
 
 legend = plt.legend(loc='upper right', shadow=True, fontsize='large')
-xlabel(r"$f$ (Hz)")
-ylabel(r"$\mathscr{Y}$ (A/V)")
-grid(True)
+plt.xlabel(r"$f$ (Hz)")
+plt.ylabel(r"$\mathscr{Y}$ (A/V)")
+plt.grid(True)
 # Put a nice background color on the legend:
 legend.get_frame().set_facecolor('#00FFCC')
 plt.subplot(212)
 plt.plot(xx, phi(xx, C0, R1, L1, C1), 'r-', label='model')
-xlabel(r"$f$ (Hz)")
-ylabel(r"$\phi$ (degrees)")
+plt.xlabel(r"$f$ (Hz)")
+plt.ylabel(r"$\phi$ (degrees)")
 legend = plt.legend(loc='upper right', shadow=True, fontsize='large')
 legend.get_frame().set_facecolor('#00FFCC')
 if plottype=='PNG' or plottype=='':# Default to PNG
@@ -349,5 +354,5 @@ if plottype=='PNG' or plottype=='':# Default to PNG
 else:# Save plot as EPS:
     plotname = infile.split('.')[0]+"model"+".eps"
     plt.savefig(plotname,format='eps', dpi=res)
-grid(True)
+plt.grid(True)
 plt.show()
