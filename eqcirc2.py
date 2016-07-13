@@ -111,7 +111,7 @@ import numpy as np
 from numpy import array
 from numpy import sqrt
 import matplotlib.pyplot as plt
-#from matplotlib import figure
+
 # Test for Python version:
 cur_version = sys.version_info
 # Initialize some lists:
@@ -167,7 +167,9 @@ def C1_i(fr, fa, C0):  # Motional capacitance estimate
 
 def rez(z, ydat, f):  # Residual function
     return ydat - y(f, z)
-    
+#
+# Comment out py3print() if you are using Python 2.x.x
+#    
 def py3print():
     '''
     Author: D. S. Stutts
@@ -192,7 +194,7 @@ def py3print():
     print( "C1 = ", C1, "\n")
     print( "Q = ", Q, "\n")
     print("RMS Diviation = ", rmserr,"\n")
-    
+# Uncomment if you are using Python 2.x.x    
 #def py2print():# Causes syntax error in Python 3.x.x.
 #    '''
 #    Author: D. S. Stutts
