@@ -16,7 +16,8 @@
 # flag to set the saved figure format. 4-26-2016: DSS
 # Added time stamp on figures. 7-7-2016 Dalton Stover
 # Added phase model. 7-8-2016: DSS
-# Moved time stamp plot plot title and appended it to the plotfile. 7-13-2016: DSS
+# Moved time stamp plot plot title and appended it to the plotfile, and
+# added LaTeX formatting to the figure annotations 7-13-2016: DSS
 ####################--
 
 """
@@ -197,30 +198,30 @@ def py3print():
     print( "Q = ", Q, "\n")
     print("RMS Diviation = ", rmserr,"\n")
 # Uncomment if you are using Python 2.x.x    
-#def py2print():# Causes syntax error in Python 3.x.x.
-#    '''
-#    Author: D. S. Stutts
-#    4-22-2016
-#    This function uses the print operator 
-#    according to the Python 2.x.x requirements.
-#    '''
-#    print "Ymax = ", Ymax, " at fr = ", fr, "\n"
-#    print "Ymin = ", Ymin, " at fa = ", fa, "\n"
-#    print "fr = ", fr, "\n"
-#    print "fa = ", fa, "\n"
-## Initial estimates:
-#    print "C0i = ", C0i,"\n"
-#    print "R1i = ", R1i,"\n"
-#    print "L1i = ", L1i,"\n"
-#    print "C1i = ", C1i,"\n"
-#    print "Qi = ", Qi,"\n"
-## Optimal estimates:    
-#    print "C0 = ", C0, "\n"
-#    print "R1 = ", R1, "\n"
-#    print "L1 = ", L1, "\n"
-#    print "C1 = ", C1, "\n"
-#    print "Q = ", Q, "\n"
-#    print "RMS Diviation = ", rmserr,"\n"
+def py2print():# Causes syntax error in Python 3.x.x.
+   '''
+   Author: D. S. Stutts
+   4-22-2016
+   This function uses the print operator 
+   according to the Python 2.x.x requirements.
+   '''
+   print "Ymax = ", Ymax, " at fr = ", fr, "\n"
+   print "Ymin = ", Ymin, " at fa = ", fa, "\n"
+   print "fr = ", fr, "\n"
+   print "fa = ", fa, "\n"
+# Initial estimates:
+   print "C0i = ", C0i,"\n"
+   print "R1i = ", R1i,"\n"
+   print "L1i = ", L1i,"\n"
+   print "C1i = ", C1i,"\n"
+   print "Qi = ", Qi,"\n"
+# Optimal estimates:    
+   print "C0 = ", C0, "\n"
+   print "R1 = ", R1, "\n"
+   print "L1 = ", L1, "\n"
+   print "C1 = ", C1, "\n"
+   print "Q = ", Q, "\n"
+   print "RMS Diviation = ", rmserr,"\n"
     
 # Set the desired resolution:
 res = 1200# Note that a resolution of 1200 dpi will yeild a large PNG
@@ -236,7 +237,8 @@ for line in data:
     numline +=1
 
 # Calculate the number of magnitude data points:
-data = open(infile, "r") # Reload
+#data = open(infile, "r") # Reload
+data.seek(0) # Reset file pointer to the beginning
 nummagpts = (numline - 1 - 26)/2
 linecount = 0
   # read the 21st through total lines from the data file
