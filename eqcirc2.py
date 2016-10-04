@@ -205,23 +205,23 @@ def py2print():# Causes syntax error in Python 3.x.x.
    This function uses the print operator 
    according to the Python 2.x.x requirements.
    '''
-   print "Ymax = ", Ymax, " at fr = ", fr, "\n"
-   print "Ymin = ", Ymin, " at fa = ", fa, "\n"
-   print "fr = ", fr, "\n"
-   print "fa = ", fa, "\n"
-# Initial estimates:
-   print "C0i = ", C0i,"\n"
-   print "R1i = ", R1i,"\n"
-   print "L1i = ", L1i,"\n"
-   print "C1i = ", C1i,"\n"
-   print "Qi = ", Qi,"\n"
-# Optimal estimates:    
-   print "C0 = ", C0, "\n"
-   print "R1 = ", R1, "\n"
-   print "L1 = ", L1, "\n"
-   print "C1 = ", C1, "\n"
-   print "Q = ", Q, "\n"
-   print "RMS Diviation = ", rmserr,"\n"
+#    print "Ymax = ", Ymax, " at fr = ", fr, "\n"
+#    print "Ymin = ", Ymin, " at fa = ", fa, "\n"
+#    print "fr = ", fr, "\n"
+#    print "fa = ", fa, "\n"
+# # Initial estimates:
+#    print "C0i = ", C0i,"\n"
+#    print "R1i = ", R1i,"\n"
+#    print "L1i = ", L1i,"\n"
+#    print "C1i = ", C1i,"\n"
+#    print "Qi = ", Qi,"\n"
+# # Optimal estimates:
+#    print "C0 = ", C0, "\n"
+#    print "R1 = ", R1, "\n"
+#    print "L1 = ", L1, "\n"
+#    print "C1 = ", C1, "\n"
+#    print "Q = ", Q, "\n"
+#    print "RMS Diviation = ", rmserr,"\n"
     
 # Set the desired resolution:
 res = 1200# Note that a resolution of 1200 dpi will yeild a large PNG
@@ -370,3 +370,4 @@ else:# Save plot as EPS:
     plt.savefig(plotname,format='eps', dpi=res)
 
 plt.show()
+
