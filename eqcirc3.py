@@ -223,7 +223,7 @@ def py2print():# Causes syntax error in Python 3.x.x.
 #    print "RMS Diviation = ", rmserr,"\n"
     
 # Set the desired resolution:
-res = 1200# Note that a resolution of 1200 dpi will yeild a large PNG
+res = 72# Note that a resolution of 1200 dpi will yield a large PNG
 # file, but a much smaller EPS file.
 #plottype = ''# Defaults to PNG
 plottype = 'EPS'
@@ -343,9 +343,7 @@ plt.annotate('RMS Dev. = '+'{: 3.2e}'.format(rmserr),xy=(fa-delx,noteymax-10*del
 # Add date and time in plot title:
 loctime = time.asctime(time.localtime(time.time()))
 plt.suptitle('Data File ='+infile+':  '+loctime)
-#plt.annotate('Date and time = '+localtime,xy=(fa,noteymax+dely))
 print ("Date and Time =", loctime, "\n")
-
 
 legend = plt.legend(loc='upper right', shadow=True, fontsize='large')
 plt.xlabel(r"$f$ (Hz)")
@@ -362,11 +360,12 @@ legend = plt.legend(loc='upper right', shadow=True, fontsize='large')
 legend.get_frame().set_facecolor('#00FFCC')
 if plottype=='PNG' or plottype=='':# Default to PNG
 # Save plot as PNG:
-    plotname = infile.split('.')[0]+"model"+loctime+".PNG"
+    plotname = infile.split('.')[0]+"trmodel"+loctime.replace(':','-')+'.PNG'
     plt.savefig(plotname,format='png', dpi=res)
 else:# Save plot as EPS:
-    plotname = infile.split('.')[0]+"model"+loctime+".EPS"
+    plotname = infile.split('.')[0]+"trmodel"+loctime.replace(':','-') + '.eps'
     plt.savefig(plotname,format='eps', dpi=res)
+
 
 plt.show()
 
