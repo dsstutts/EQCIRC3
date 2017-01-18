@@ -132,34 +132,33 @@ f = 0.0
 # Define functions:
 def y(f, z):  # Admittance model
     return 0.2e1 * np.pi * f * np.sqrt(0.4e1 * z[0] ** 2*z[3]**2*
-                                       z[1] ** 2 * np.pi ** 2 * f ** 2 + (
-                                                                          -0.4e1 * z[0] * z[3] * z[2] * np.pi ** 2 * f ** 2
-                                                                          + z[0]+z[3])**2)*((-0.4e1 * z[3]*z[2]*np.pi ** 2*f**2+0.1e1)**2
-                                                                                            + 0.4e1*z[1]**2*z[3]**2*np.pi**2*f**2)**(-0.1e1/0.2e1)
+    2 * np.pi ** 2 * f ** 2 + (-0.4e1 *z[0]*z[3]*z[2] * np.pi**2*f**2
+    + z[0]+z[3])**2)*((-0.4e1 * z[3]*z[2]*np.pi ** 2*f**2+0.1e1)**2
+    + 0.4e1*z[1]**2*z[3]**2*np.pi**2*f**2)**(-0.1e1/0.2e1)
 
 # Real admittance:
 Y_R = lambda f,cg,cg5,cg3,cg1: cg5 * cg1 ** 2 / (16 * cg ** 2 *
-                                                 cg1 ** 2 * cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 *
-                                                 np.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 * np.pi ** 2
-                                                 * f ** 2 - 8 * cg * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2 + cg ** 2 +
-                                                 2 * cg * cg1 + cg1 ** 2)
+cg1 ** 2 * cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 *
+np.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 * np.pi ** 2
+* f ** 2 - 8 * cg * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2 + cg ** 2 +
+2 * cg * cg1 + cg1 ** 2)
 
 # Imaginary admittance:
 Y_I = lambda f,cg,cg5,cg3,cg1: -0.1e1 / np.pi / f * (16 * cg * cg1 ** 2
-                                                     * cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg * cg1 ** 2 * np.pi ** 2
-                                                     * cg5 ** 2 * f ** 2 - 8 * cg * cg1 * cg3 * np.pi ** 2 * f ** 2 -
-                                                     4 * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2 + cg + cg1) / (16 * cg ** 2 *
-                                                                                                             cg1 ** 2 * cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 *
-                                                                                                             np.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 *
-                                                                                                             np.pi ** 2 * f ** 2 - 8 * cg * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2
-                                                                                                             + cg ** 2 + 2 * cg * cg1 + cg1 ** 2) / 2
+* cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg * cg1 ** 2 * np.pi ** 2
+* cg5 ** 2 * f ** 2 - 8 * cg * cg1 * cg3 * np.pi ** 2 * f ** 2 -
+4 * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2 + cg + cg1) / (16 * cg ** 2 *
+cg1 ** 2 * cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 *
+np.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 *
+np.pi ** 2 * f ** 2 - 8 * cg * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2
++ cg ** 2 + 2 * cg * cg1 + cg1 ** 2) / 2
 phi = lambda f, cg,cg5,cg3,cg1:180*np.arctan2(Y_I(f,cg,cg5,cg3,cg1),
-                                              Y_R(f,cg,cg5,cg3,cg1)/np.pi)
+Y_R(f,cg,cg5,cg3,cg1)/np.pi)
 
 def C0_i(Ymin, Ymax, fr, fa):  # Parallel capacitance estimate
     return np.sqrt(0.2e1*(fa ** 2 - fr**2)*Ymin**2/np.pi**2/fa**4
-                   + 0.2e1*np.sqrt((fa ** 2 - f ** 2)**2/np.pi**4/fa**8*Ymin**4
-                                   + 0.4e1*Ymin**2*Ymax**2/np.pi**4/fa**4))/0.4e1
+    + 0.2e1*np.sqrt((fa ** 2 - f ** 2)**2/np.pi**4/fa**8*Ymin**4
+    + 0.4e1*Ymin**2*Ymax**2/np.pi**4/fa**4))/0.4e1
 
 
 def R1_i(Ymin, Ymax, fr, fa, C0):  # Motional resistance estimate
