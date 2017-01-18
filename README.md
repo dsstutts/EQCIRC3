@@ -22,7 +22,7 @@ See: http://docs.scipy.org/doc/scipy-0.14.0/
 reference/generated/scipy.optimize.leastsq.html
 for more information.
 
-eqcirc2.py calculates the following outputs stdout: 
+eqcirc3.py calculates the following outputs stdout: 
 
 (1) fr (the resonance frequency)
 (2) fa (the anti-resonance frequency)
@@ -36,17 +36,17 @@ eqcirc2.py calculates the following outputs stdout:
 
 A graph of the data and model is also produced.
 
-Example call: python eqcirc2.py inputdatafile.txt
+Example call: python eqcirc3.py inputdatafile.txt
 
 The graph may be saved in PNG format, and the text
 may be redirected from stdout to a file like so:
 
-python eqcirc2.py inputdatafile.txt > outdata.txt
+python eqcirc3.py inputdatafile.txt > outdata.txt
 
  # This code is copyrighted by the author, but released under the MIT
  # license:
 
-Copyright (c) 2015 eqcirc2.py
+Copyright (c) 2016 eqcirc3.py
 
 S&T and the University of Missouri Board of Curators 
 license to you the right to use, modify, copy, and distribute this 
@@ -73,9 +73,9 @@ DEALINGS IN THE SOFTWARE.
 The author kindly requests that any publications benefitting from the use
 of this software include the following citation: 
 
-@Misc{eqcirc1_2015,
+@Misc{eqcirc1_2016,
 author =   {Stutts, D. S.},
-title = {{eqcirc2.py}: {Equivalent Circuit Parameter Estimator
+title = {{eqcirc3.py}: {Equivalent Circuit Parameter Estimator
 for Piezoelectric Structures.}},
-howpublished = {\\url{https://github.com/MSTESG/EQCIRC1.git}},
-year = {2015}}
+howpublished = {\\url{https://github.com/MSTESG/EQCIRC3.git}},
+year = {2016}}
