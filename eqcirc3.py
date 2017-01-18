@@ -278,8 +278,8 @@ fa = np.sqrt((C0 + C1) / C0 / C1 / L1) / np.pi / 0.2e1
 # Put the optimal values in a list:
 coeffs = [C0, R1, L1, C1]
 
-# Calculate RMS error:
-var = np.inner(output[2]['fvec'],output[2]['fvec'])  # output is a tuple containing a dictionary
+# Calculate RMS error: output is a tuple containing a dictionary
+var = np.inner(output[2]['fvec'],output[2]['fvec'])
 rmserr = sqrt(var/(len(output[2]['fvec'])-4))  # Standard error estimate
 # Print the results to std out:
 py3print()
