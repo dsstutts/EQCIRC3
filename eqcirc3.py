@@ -65,7 +65,7 @@
     
     A graph of the data and model is also produced.
     
-    Example call: python eqcirc2.py inputdatafile.txt
+    Example call: python eqcirc3.py inputdatafile.txt
     
     The graph may be saved in PNG format, and the text
     may be redirected from stdout to a file like so:
