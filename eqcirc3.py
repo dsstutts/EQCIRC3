@@ -205,8 +205,8 @@ def py3print():
 
 # Set the desired resolution:
 res = 300# Use a larger value for PNG
-plottype = ''# Defaults to PNG
-#plottype = 'EPS'
+#plottype = ''# Defaults to PNG
+plottype = 'EPS'
 # Input data file on command line:
 infile = sys.argv[1]
 data = open(infile, "r")  # get array out of input file
