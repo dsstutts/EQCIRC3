@@ -153,7 +153,7 @@ np.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 *
 np.pi ** 2 * f ** 2 - 8 * cg * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2
 + cg ** 2 + 2 * cg * cg1 + cg1 ** 2) / 2
 phi = lambda f, cg,cg5,cg3,cg1:180*np.arctan2(Y_I(f,cg,cg5,cg3,cg1),
-Y_R(f,cg,cg5,cg3,cg1)/np.pi)
+Y_R(f,cg,cg5,cg3,cg1))/np.pi
 
 def C0_i(Ymin, Ymax, fr, fa):  # Parallel capacitance estimate
     return np.sqrt(0.2e1*(fa ** 2 - fr**2)*Ymin**2/np.pi**2/fa**4
@@ -204,7 +204,7 @@ def py3print():
     print("RMS Diviation = ", rmserr,"\n")
 
 # Set the desired resolution:
-res = 72# Use a larger value for PNG
+res = 300# Use a larger value for PNG
 #plottype = ''# Defaults to PNG
 plottype = 'EPS'
 # Input data file on command line:
