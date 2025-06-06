@@ -201,6 +201,7 @@ def py3print():
     print( "L1 = ", L1, "\n")
     print( "C1 = ", C1, "\n")
     print( "Q = ", Q, "\n")
+    print( "k31 = ", k31, "\n")
     print("RMS Diviation = ", rmserr,"\n")
 
 # Set the desired resolution:
@@ -281,6 +282,7 @@ coeffs = [C0, R1, L1, C1]
 # Calculate RMS error: output is a tuple containing a dictionary
 var = np.inner(output[2]['fvec'],output[2]['fvec'])
 rmserr = sqrt(var/(len(output[2]['fvec'])-4))  # Standard error estimate
+k31 = np.sqrt((fa**2-fr**2)/fa**2)# Electromechanical coupling coefficient
 # Print the results to std out:
 py3print()
 
@@ -303,6 +305,7 @@ plt.annotate(r"$L_1$ = "+'{: 3.3e}'.format(L1),xy=(fa-delx,noteymax-5.8*dely))
 plt.annotate(r"$C_1$ = "+'{: 3.3e}'.format(C1),xy=(fa-delx,noteymax-7.2*dely))
 plt.annotate('Q = '+'{: 3.3e}'.format(Q),xy=(fa-delx,noteymax-8.6*dely))
 plt.annotate('RMS Dev. = '+'{: 3.2e}'.format(rmserr),xy=(fa-delx,noteymax-10*dely))
+plt.annotate('$k_{31}$ = '+'{: 3.2e}'.format(k31),xy=(fa-delx,noteymax-11.4*dely))
 
 # Add date and time in plot title:
 loctime = time.asctime(time.localtime(time.time()))
