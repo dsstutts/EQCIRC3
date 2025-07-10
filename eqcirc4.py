@@ -23,17 +23,16 @@
 # reflecting the four degrees of freedom in the model.
 # The error bars are ±rmserr centered on the model
 # evaluated at the data point frequency. 1-2-2017: DSS
-# Vers 4.0 Enhanced for complex impedance data support 
-# and phase data plotting: 6-9-2025 DSS
+# Enhanced for complex impedance data support and phase data 
+# plotting.  Now reads phase data too: 6-9-2025 DSS
 ####################--
 
 """
     
     This program calculates the equivalent
     circuit parameters from frequency-impedance magnitude
-    magnitude data stored in the standard
-    HP4294A Impedance Analyser output data
-    format.
+    data stored in the standard P4294A Impedance Analyser 
+    output data format.
     
     An image of the equivalent circuit may be
     found here:
@@ -67,12 +66,12 @@
     
     A graph of the data and model is also produced.
     
-    Example call: python eqcirc3.py inputdatafile.txt
+    Example call: python eqcirc4.py inputdatafile.txt
     
     The graph may be saved in PNG format, and the text
     may be redirected from stdout to a file like so:
     
-    python eqcirc3.py inputdatafile.txt > outdata.txt
+    python eqcirc4.py inputdatafile.txt > outdata.txt
     
     Enhanced features in this version:
     - Supports complex impedance data (real + imaginary components)
@@ -83,7 +82,8 @@
     # This code is copyrighted by the author, but released under the MIT
     # license:
     
-    Copyright (c) 2015 -- eqcirc3.py
+    Copyright (c) 2025 -- eqcirc4.py
+    (Original copyright 2015)
     
     S&T and the University of Missouri Board of Curators
     license to you the right to use, modify, copy, and distribute this
