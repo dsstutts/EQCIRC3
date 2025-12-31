@@ -1,409 +1,434 @@
-####################--
-# File: eqcirc4.py
-# Equivalent Circuit Parameter Estimator for Piezoelectric Structures
-# Author: D. S. Stutts
-# Associate Professor of Mechanical Engineering
-# 282 Toomey Hall
-# 400 W. 13th St.
-# Rolla, MO 65409-0050
-# Email: stutts@mst.edu
-# Original release: eqcirc1.py Version 0.1.0 3-29-2015
-# Modified and renamed to eqcirc2.py to input impedance 4-17-2015:DSS
-# Now also automatically determines the number of points to process.
-#
-# Modified for partial Python 3 compatibility, moved results printing
-# into functions, refined plot formatting, and added
-# flag to set the saved figure format. 4-26-2016: DSS
-# Added time stamp on figures. 7-7-2016 Dalton Stover
-# Added phase model. 7-8-2016: DSS
-# Moved time stamp plot plot title and appended it to the plotfile, and
-# added LaTeX formatting to the figure annotations 7-13-2016: DSS
-# Added error bar functionality, and changed rmserr to calculate the
-# more conservative sqrt(variance/(n-4)) estimate --
-# reflecting the four degrees of freedom in the model.
-# The error bars are ±rmserr centered on the model
-# evaluated at the data point frequency. 1-2-2017: DSS
-# Enhanced for complex impedance data support and phase data 
-# plotting.  Now reads phase data too: 6-9-2025 DSS
-####################--
-
+#!/usr/bin/env python3
 """
-    
-    This program calculates the equivalent
-    circuit parameters from frequency-impedance magnitude
-    data stored in the standard P4294A Impedance Analyser 
-    output data format.
-    
-    An image of the equivalent circuit may be
-    found here:
-    http://web.mst.edu/~stutts/piezoequivcircuit0.png
-    
-    The program first calculates the approximate
-    equivalent circuit parameters for a single
-    resonance-antiresonance frequency pair.
-    It then uses the Levenberg-Marquardt (LM)
-    nonlinear least squares algorithm to
-    optimize the model in the least squares
-    sense.  The LM algorithm is invoked
-    via a call to leastsq(rez, z0, args=(yy, xx),
-    full_output=1) from the scipy.optimize library.
-    
-    See: http://docs.scipy.org/doc/scipy-0.14.0/
-    reference/generated/scipy.optimize.leastsq.html
-    for more information.
-    
-    eqcirc3.py calculates the following outputs stdout:
-    
-    (1) fr (the resonance frequency)
-    (2) fa (the anti-resonance frequency)
-    (3) C0 (the parallel capacitance)
-    (4) R1 (the motional resistance)
-    (5) L1 (the motional inductance)
-    (6) C1 (the motional capacitance)
-    (7) Q (the series R1L1C1 resonance
-    quality factor = 1/2zeta)
-    (8) RMS Deviation
-    
-    A graph of the data and model is also produced.
-    
-    Example call: python eqcirc4.py inputdatafile.txt
-    
-    The graph may be saved in PNG format, and the text
-    may be redirected from stdout to a file like so:
-    
-    python eqcirc4.py inputdatafile.txt > outdata.txt
-    
-    Enhanced features in this version:
-    - Supports complex impedance data (real + imaginary components)
-    - Automatically computes magnitude from complex data
-    - Reads and plots both magnitude and phase data
-    - Improved data parsing for multiple trace formats
-    
-    # This code is copyrighted by the author, but released under the MIT
-    # license:
-    
-    Copyright (c) 2025 -- eqcirc4.py
-    (Original copyright 2015)
-    
-    S&T and the University of Missouri Board of Curators
-    license to you the right to use, modify, copy, and distribute this
-    code subject to the MIT license:
-    
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-    
-    The above copyright notice and this permission notice shall be included
-    in all copies or substantial portions of the Software.
-    
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-    DEALINGS IN THE SOFTWARE.
-    
-    The author kindly requests that any publications benefiting from the use
-    of this software include the following citation:
-    
-    @Misc{eqcirc3_2015,
-    author =   {Stutts, D. S.},
-    title = {{eqcirc3.py}: {Equivalent Circuit Parameter Estimator
-    for Piezoelectric Structures.}},
-    howpublished = {\\url{https://github.com/MSTESG/EQCIRC3.git}},
-    year = {2016}}
-    
-    """
+Equivalent Circuit Parameter Estimator for Piezoelectric Structures
+Enhanced version with logging and configurable plotting options
 
-import sys
-from scipy.optimize import leastsq
+Author: D. S. Stutts (original), Enhanced by user
+Associate Professor of Mechanical Engineering
+Missouri University of Science and Technology
+Email: stutts@mst.edu
+
+Original release: eqcirc2.py Version 0.1.0 3-29-2015
+Enhanced version: 2025
+
+This program calculates equivalent circuit parameters from frequency-impedance
+magnitude data stored in the standard HP4294A Impedance Analyzer output format.
+
+Equivalent circuit diagram:
+http://web.mst.edu/~stutts/piezoequivcircuit0.png
+"""
+
 import numpy as np
-from numpy import array, sqrt
+from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
-import time
+import matplotlib.patches as mpatch
+import logging
+import argparse
+from pathlib import Path
+from datetime import datetime
 
-# Test for Python version:
-cur_version = sys.version_info
 
-# Initialize some lists:
-ydat = []
-x = []
-xx = []
-yy = []
-zdat = []
-phase_data = []
-phase_freq = []
-f = 0.0
+class PiezoAnalyzer:
+    """Analyzes piezoelectric impedance data and fits equivalent circuit model."""
 
-# Define functions:
-def y(f, z):  # Admittance model
-    return 0.2e1 * np.pi * f * np.sqrt(0.4e1 * z[0] ** 2*z[3]**2*
-    2 * np.pi ** 2 * f ** 2 + (-0.4e1 *z[0]*z[3]*z[2] * np.pi**2*f**2
-    + z[0]+z[3])**2)*((-0.4e1 * z[3]*z[2]*np.pi ** 2*f**2+0.1e1)**2
-    + 0.4e1*z[1]**2*z[3]**2*np.pi**2*f**2)**(-0.1e1/0.2e1)
+    def __init__(self, log_level=logging.INFO):
+        """Initialize analyzer with logging configuration."""
+        self.setup_logging(log_level)
+        self.logger = logging.getLogger(__name__)
 
-# Real admittance:
-Y_R = lambda f,cg,cg5,cg3,cg1: cg5 * cg1 ** 2 / (16 * cg ** 2 *
-cg1 ** 2 * cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 *
-np.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 * np.pi ** 2
-* f ** 2 - 8 * cg * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2 + cg ** 2 +
-2 * cg * cg1 + cg1 ** 2)
+    def setup_logging(self, log_level):
+        """Configure logging to file and console."""
+        log_filename = f'piezo_analysis_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
 
-# Imaginary admittance:
-Y_I = lambda f,cg,cg5,cg3,cg1: -0.1e1 / np.pi / f * (16 * cg * cg1 ** 2
-* cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg * cg1 ** 2 * np.pi ** 2
-* cg5 ** 2 * f ** 2 - 8 * cg * cg1 * cg3 * np.pi ** 2 * f ** 2 -
-4 * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2 + cg + cg1) / (16 * cg ** 2 *
-cg1 ** 2 * cg3 ** 2 * np.pi ** 4 * f ** 4 + 4 * cg ** 2 * cg1 ** 2 *
-np.pi ** 2 * cg5 ** 2 * f ** 2 - 8 * cg ** 2 * cg1 * cg3 *
-np.pi ** 2 * f ** 2 - 8 * cg * cg1 ** 2 * cg3 * np.pi ** 2 * f ** 2
-+ cg ** 2 + 2 * cg * cg1 + cg1 ** 2) / 2
+        logging.basicConfig(
+            level=log_level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_filename),
+                logging.StreamHandler()
+            ]
+        )
 
-phi = lambda f, cg,cg5,cg3,cg1:180*np.arctan2(Y_I(f,cg,cg5,cg3,cg1),
-Y_R(f,cg,cg5,cg3,cg1))/np.pi
+    @staticmethod
+    def admittance_model(f, z):
+        """
+        Calculate admittance from equivalent circuit parameters.
 
-def C0_i(Ymin, Ymax, fr, fa):  # Parallel capacitance estimate
-    return np.sqrt(0.2e1*(fa ** 2 - fr**2)*Ymin**2/np.pi**2/fa**4
-    + 0.2e1*np.sqrt((fa ** 2 - fr ** 2)**2/np.pi**4/fa**8*Ymin**4
-    + 0.4e1*Ymin**2*Ymax**2/np.pi**4/fa**4))/0.4e1
+        This is the exact formula from the original eqcirc2.py code.
+        Note: 0.2e1 = 2.0, 0.4e1 = 4.0, 0.1e1 = 1.0 in the original
 
-def R1_i(Ymin, Ymax, fr, fa, C0):  # Motional resistance estimate
-    return (-0.4e1*np.pi**2*fr**2*C0**2+Ymax**2)**(-0.1e1/0.2e1)
+        Parameters:
+        -----------
+        f : array-like
+            Frequency array (Hz)
+        z : array-like
+            Circuit parameters [C0, R1, L1, C1]
+            C0: parallel capacitance (F)
+            R1: motional resistance (Ω)
+            L1: motional inductance (H)
+            C1: motional capacitance (F)
 
-def L1_i(fr, fa, C0):  # Motional inductance estimate
-    return 0.1e1 / np.pi ** 2 / (fa ** 2 - fr ** 2) / C0 / 0.4e1
+        Returns:
+        --------
+        Y : array-like
+            Admittance (A/V)
+        """
+        # Exact translation from original:
+        # return 0.2e1 * np.pi * f * np.sqrt(0.4e1 * z[0] ** 2*z[3]**2*
+        # z[1] ** 2 * np.pi ** 2 * f ** 2 + (
+        # -0.4e1 * z[0] * z[3] * z[2] * np.pi ** 2 * f ** 2
+        # + z[0]+z[3])**2)*((-0.4e1 * z[3]*z[2]*np.pi ** 2*f**2+0.1e1)**2
+        # + 0.4e1*z[1]**2*z[3]**2*np.pi**2*f**2)**(-0.1e1/0.2e1)
 
-def C1_i(fr, fa, C0):  # Motional capacitance estimate
-    return (fa ** 2 / fr ** 2 - 1) * C0
+        # Broken down for clarity:
+        numerator_term1 = 4 * z[0]**2 * z[3]**2 * z[1]**2 * np.pi**2 * f**2
+        numerator_term2 = (-4 * z[0] * z[3] * z[2] * np.pi**2 * f**2 + z[0] + z[3])**2
+        numerator = numerator_term1 + numerator_term2
 
-def rez(z, ydat, f):  # Residual function
-    return ydat - y(f, z)
+        denominator_term1 = (-4 * z[3] * z[2] * np.pi**2 * f**2 + 1)**2
+        denominator_term2 = 4 * z[1]**2 * z[3]**2 * np.pi**2 * f**2
+        denominator = denominator_term1 + denominator_term2
 
-def parse_data_line(line):
-    """Parse a data line and return frequency, real, and imaginary parts"""
+        return 2 * np.pi * f * np.sqrt(numerator) * (denominator)**(-0.5)
+
+    @staticmethod
+    def estimate_C0(Ymin, Ymax, fr, fa):
+        """Estimate parallel capacitance."""
+        term1 = 2 * (fa**2 - fr**2) * Ymin**2 / (np.pi**2 * fa**4)
+        term2 = 2 * np.sqrt((fa**2 - fr**2)**2 * Ymin**4 / (np.pi**4 * fa**8) +
+                           4 * Ymin**2 * Ymax**2 / (np.pi**4 * fa**4))
+        return np.sqrt(term1 + term2) / 4
+
+    @staticmethod
+    def estimate_R1(Ymin, Ymax, fr, fa, C0):
+        """Estimate motional resistance."""
+        return 1 / np.sqrt(-4 * np.pi**2 * fr**2 * C0**2 + Ymax**2)
+
+    @staticmethod
+    def estimate_L1(fr, fa, C0):
+        """Estimate motional inductance."""
+        return 1 / (4 * np.pi**2 * (fa**2 - fr**2) * C0)
+
+    @staticmethod
+    def estimate_C1(fr, fa, C0):
+        """Estimate motional capacitance."""
+        return (fa**2 / fr**2 - 1) * C0
+
+    def residual(self, z, ydat, f):
+        """Calculate residual for least squares optimization."""
+        return ydat - self.admittance_model(f, z)
+
+    def load_data(self, filepath):
+        """
+        Load impedance data from HP4294A format file.
+
+        Parameters:
+        -----------
+        filepath : str or Path
+            Path to data file
+
+        Returns:
+        --------
+        freq : ndarray
+            Frequency array
+        impedance : ndarray
+            Impedance magnitude array
+        """
+        self.logger.info(f"Loading data from {filepath}")
+
+        with open(filepath, 'r') as f:
+            lines = f.readlines()
+
+        numlines = len(lines)
+        nummagpts = (numlines - 1 - 26) // 2
+
+        self.logger.info(f"Total lines: {numlines}, Data points: {nummagpts}")
+
+        freq = []
+        impedance = []
+
+        for i, line in enumerate(lines[21:21+nummagpts]):
+            try:
+                parts = line.split()
+                freq.append(float(parts[0]))
+                impedance.append(float(parts[1]))
+            except (ValueError, IndexError) as e:
+                self.logger.warning(f"Skipping line {i+21}: {e}")
+
+        return np.array(freq), np.array(impedance)
+
+    def analyze(self, freq, impedance):
+        """
+        Perform equivalent circuit parameter estimation.
+
+        Parameters:
+        -----------
+        freq : ndarray
+            Frequency array
+        impedance : ndarray
+            Impedance magnitude array
+
+        Returns:
+        --------
+        results : dict
+            Dictionary containing all fitted parameters and metrics
+        """
+        self.logger.info("Starting parameter estimation")
+
+        # Calculate admittance
+        admittance = 1 / impedance
+
+        # Find resonance and anti-resonance
+        Ymax = np.max(admittance)
+        fr = freq[np.argmax(admittance)]
+        Ymin = np.min(admittance)
+        fa = freq[np.argmin(admittance)]
+
+        self.logger.info(f"Ymax = {Ymax:.4e} at fr = {fr:.4e} Hz")
+        self.logger.info(f"Ymin = {Ymin:.4e} at fa = {fa:.4e} Hz")
+
+        # Initial parameter estimates
+        C0i = self.estimate_C0(Ymin, Ymax, fr, fa)
+        R1i = self.estimate_R1(Ymin, Ymax, fr, fa, C0i)
+        L1i = self.estimate_L1(fr, fa, C0i)
+        C1i = self.estimate_C1(fr, fa, C0i)
+
+        self.logger.info("Initial estimates:")
+        self.logger.info(f"  C0 = {C0i:.4e} F")
+        self.logger.info(f"  R1 = {R1i:.4f} Ω")
+        self.logger.info(f"  L1 = {L1i:.4e} H")
+        self.logger.info(f"  C1 = {C1i:.4e} F")
+
+        # Optimize parameters using Levenberg-Marquardt
+        z0 = [C0i, R1i, L1i, C1i]
+        output = leastsq(self.residual, z0, args=(admittance, freq), full_output=1)
+
+        C0, R1, L1, C1 = output[0]
+
+        # Calculate derived parameters
+        Q = 1 / (R1 * np.sqrt(C1 / L1))
+        fr_fit = 1 / (2 * np.pi * np.sqrt(L1 * C1))
+        fa_fit = np.sqrt((C0 + C1) / (C0 * C1 * L1)) / (2 * np.pi)
+
+        # Calculate RMS error
+        y_model = self.admittance_model(freq, [C0, R1, L1, C1])
+        rmserr = np.sqrt(np.sum((admittance - y_model)**2) / len(freq))
+
+        results = {
+            'freq': freq,
+            'impedance': impedance,
+            'admittance': admittance,
+            'C0': C0,
+            'R1': R1,
+            'L1': L1,
+            'C1': C1,
+            'Q': Q,
+            'fr': fr_fit,
+            'fa': fa_fit,
+            'rmserr': rmserr,
+            'y_model': y_model
+        }
+
+        self.logger.info("\nOptimized parameters:")
+        self.logger.info(f"  fr = {fr_fit:.4e} Hz")
+        self.logger.info(f"  fa = {fa_fit:.4e} Hz")
+        self.logger.info(f"  C0 = {C0:.4e} F")
+        self.logger.info(f"  R1 = {R1:.4f} Ω")
+        self.logger.info(f"  L1 = {L1:.4e} H")
+        self.logger.info(f"  C1 = {C1:.4e} F")
+        self.logger.info(f"  Q = {Q:.2f}")
+        self.logger.info(f"  RMS Error = {rmserr:.2e}")
+
+        return results
+
+    def plot_results(self, results, show_model=True, show_annotations=True,
+                    journal_style=False, output_file=None, freq_units='Hz'):
+        """
+        Generate plots of data and fitted model.
+
+        Parameters:
+        -----------
+        results : dict
+            Results dictionary from analyze()
+        show_model : bool
+            Whether to plot the fitted model
+        show_annotations : bool
+            Whether to show parameter annotations on plot
+        journal_style : bool
+            Use journal-ready formatting (larger fonts, no background)
+        output_file : str or None
+            Output filename for saving plot
+        freq_units : str
+            Frequency units for plot ('Hz', 'kHz', 'MHz')
+        """
+        self.logger.info("Generating plot")
+
+        # Determine frequency scaling
+        freq_scale = {'Hz': 1.0, 'kHz': 1e-3, 'MHz': 1e-6}
+        if freq_units not in freq_scale:
+            self.logger.warning(f"Unknown frequency unit '{freq_units}', using 'Hz'")
+            freq_units = 'Hz'
+
+        scale = freq_scale[freq_units]
+        freq_scaled = results['freq'] * scale
+
+        # Set style based on journal requirements
+        if journal_style:
+            plt.style.use('seaborn-v0_8-paper')
+            fig, ax = plt.subplots(1, figsize=(6, 4), dpi=300)
+            fontsize_label = 14
+            fontsize_tick = 12
+            fontsize_legend = 12
+            fontsize_annot = 10
+            linewidth = 1.5
+            markersize = 2
+        else:
+            fig, ax = plt.subplots(1, figsize=(10, 6))
+            fontsize_label = 12
+            fontsize_tick = 12
+            fontsize_legend = 12
+            fontsize_annot = 12
+            linewidth = 2
+            markersize = 1
+
+        # Plot model first (behind data) if requested
+        if show_model:
+            ax.plot(freq_scaled, results['y_model'], 'r-',
+                   linewidth=linewidth, label='Fitted Model', zorder=1)
+
+        # Plot data on top
+        ax.plot(freq_scaled, results['admittance'], 'ko',
+                markersize=markersize, label='Measured Data', zorder=2)
+
+        # Add annotations if requested and not in journal style
+        if show_annotations and not journal_style:
+            Ymax = np.max(results['admittance'])
+            Ymin = np.min(results['admittance'])
+            dely = Ymax - Ymin
+            delx = freq_scaled[-1] - freq_scaled[0]
+
+            xpos = float(results['fa']) * scale
+            noteymax = 0.8 * Ymax
+            padx = delx / 100
+            legendwidth = delx / 2
+            legendheight = dely / 1.75
+            linegap = dely / 15
+
+            # Background rectangle
+            ax.add_patch(mpatch.Rectangle(
+                (xpos - padx, noteymax),
+                legendwidth, -legendheight,
+                alpha=0.5, facecolor='#ffcccc', zorder=2
+            ))
+
+            # Text annotations
+            annotations = [
+                f"fr = {results['fr']*scale:.4e} {freq_units}",
+                f"fa = {results['fa']*scale:.4e} {freq_units}",
+                f"C0 = {results['C0']:.4e} F",
+                f"R1 = {results['R1']:.4f} Ω",
+                f"L1 = {results['L1']:.4e} H",
+                f"C1 = {results['C1']:.4e} F",
+                f"Q = {results['Q']:.2f}",
+                f"RMSErr = {results['rmserr']:.2e}"
+            ]
+
+            for i, text in enumerate(annotations):
+                ax.annotate(text, xy=(xpos, noteymax - (i+1)*linegap),
+                           fontsize=fontsize_annot, zorder=3)
+
+        # Formatting
+        ax.set_xlabel(f'Frequency ({freq_units})', fontsize=fontsize_label)
+        ax.set_ylabel('Admittance (S)', fontsize=fontsize_label)
+        ax.tick_params(labelsize=fontsize_tick)
+
+        # Only use scientific notation for Hz
+        if freq_units == 'Hz':
+            ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
+
+        ax.grid(True, alpha=0.3)
+
+        legend = ax.legend(loc='upper right', fontsize=fontsize_legend,
+                          framealpha=1 if not journal_style else 0.9)
+
+        if not journal_style:
+            legend.get_frame().set_facecolor('white')
+
+        plt.tight_layout()
+
+        # Save if requested
+        if output_file:
+            self.logger.info(f"Saving plot to {output_file}")
+            # Determine format from extension, default to SVG for journal style
+            if journal_style and not output_file.endswith(('.svg', '.pdf', '.png')):
+                output_file = Path(output_file).stem + '.svg'
+            plt.savefig(output_file,
+                       dpi=300 if journal_style and output_file.endswith('.png') else None,
+                       format='svg' if output_file.endswith('.svg') else None,
+                       bbox_inches='tight')
+
+        plt.show()
+
+
+def main():
+    """Main execution function with command-line interface."""
+    parser = argparse.ArgumentParser(
+        description='Piezoelectric Equivalent Circuit Parameter Estimator',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    parser.add_argument('input_file', type=str,
+                       help='Input data file (HP4294A format)')
+    parser.add_argument('--no-model', action='store_true',
+                       help='Plot data only without fitted model')
+    parser.add_argument('--no-annotations', action='store_true',
+                       help='Hide parameter annotations on plot')
+    parser.add_argument('--journal', action='store_true',
+                       help='Generate journal-ready figure')
+    parser.add_argument('--output', '-o', type=str,
+                       help='Output plot filename (default: auto-generated)')
+    parser.add_argument('--freq-units', type=str, default='Hz',
+                       choices=['Hz', 'kHz', 'MHz'],
+                       help='Frequency units for plot (default: Hz)')
+    parser.add_argument('--log-level', type=str, default='INFO',
+                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                       help='Logging level (default: INFO)')
+
+    args = parser.parse_args()
+
+    # Initialize analyzer
+    analyzer = PiezoAnalyzer(log_level=getattr(logging, args.log_level))
+
+    # Load and analyze data
     try:
-        parts = line.strip().split('\t')
-        if len(parts) >= 3:
-            freq = float(parts[0])
-            real_part = float(parts[1])
-            imag_part = float(parts[2])
-            return freq, real_part, imag_part
-        elif len(parts) >= 2:
-            freq = float(parts[0])
-            real_part = float(parts[1])
-            return freq, real_part, 0.0
-    except (ValueError, IndexError):
-        pass
-    return None
+        freq, impedance = analyzer.load_data(args.input_file)
+        results = analyzer.analyze(freq, impedance)
 
-def is_data_line(line):
-    """Check if a line contains numerical data"""
-    line = line.strip()
-    if not line or line.startswith('"') or line.startswith('Frequency'):
-        return False
-    try:
-        parts = line.split('\t')
-        float(parts[0])  # Try to parse first element as frequency
-        return True
-    except (ValueError, IndexError):
-        return False
+        # Generate output filename if not specified
+        if args.output is None:
+            input_path = Path(args.input_file)
+            suffix = '_journal' if args.journal else '_model'
+            extension = '.svg' if args.journal else '.pdf'
+            args.output = input_path.stem + suffix + extension
 
-def py3print():
-    '''Print results in Python 3.x format'''
-    print("Ymax = ", Ymax, " at fr = ", fr, "\n")
-    print("Ymin = ", Ymin, " at fa = ", fa, "\n")
-    print("fr = ", fr, "\n")
-    print("fa = ", fa, "\n")
-    # Initial estimates:
-    print("C0i = ", C0i,"\n")
-    print("R1i = ", R1i,"\n")
-    print("L1i = ", L1i,"\n")
-    print("C1i = ", C1i,"\n")
-    print("Qi = ", Qi,"\n")
-    # Optimal estimates:
-    print("C0 = ", C0, "\n")
-    print("R1 = ", R1, "\n")
-    print("L1 = ", L1, "\n")
-    print("C1 = ", C1, "\n")
-    print("Q = ", Q, "\n")
-    print("k31 = ", k31, "\n")
-    print("RMS Deviation = ", rmserr,"\n")
+        # Plot results
+        analyzer.plot_results(
+            results,
+            show_model=not args.no_model,
+            show_annotations=not args.no_annotations,
+            journal_style=args.journal,
+            output_file=args.output,
+            freq_units=args.freq_units
+        )
 
-# Set the desired resolution:
-res = 300  # Use a larger value for PNG
-plottype = 'PNG'  # or 'EPS'
+        analyzer.logger.info("Analysis completed successfully")
 
-# Input data file on command line:
-if len(sys.argv) < 2:
-    print("Usage: python eqcirc3_improved.py inputdatafile.txt")
-    sys.exit(1)
+    except Exception as e:
+        logging.error(f"Error during analysis: {e}", exc_info=True)
+        return 1
 
-infile = sys.argv[1]
+    return 0
 
-# Read and parse the data file
-try:
-    with open(infile, "r") as data:
-        lines = data.readlines()
-except FileNotFoundError:
-    print(f"Error: Could not find file {infile}")
-    sys.exit(1)
 
-# Parse impedance magnitude data (TRACE A)
-impedance_data = []
-phase_data_raw = []
-current_trace = None
-reading_data = False
-
-for i, line in enumerate(lines):
-    line = line.strip()
-    
-    # Detect trace sections
-    if 'TRACE: A' in line:
-        current_trace = 'A'
-        reading_data = False
-        continue
-    elif 'TRACE: B' in line:
-        current_trace = 'B'
-        reading_data = False
-        continue
-    
-    # Skip header lines and start reading data after frequency header
-    if 'Frequency' in line and 'Data Trace' in line:
-        reading_data = True
-        continue
-    
-    # Read numerical data
-    if reading_data and is_data_line(line):
-        parsed = parse_data_line(line)
-        if parsed:
-            freq, real_part, imag_part = parsed
-            if current_trace == 'A':
-                # For impedance data, compute magnitude from complex components
-                magnitude = np.sqrt(real_part**2 + imag_part**2)
-                impedance_data.append((freq, magnitude))
-            elif current_trace == 'B':
-                # For phase data, use real part (phase is typically in real component)
-                phase_data_raw.append((freq, real_part))
-
-# Convert to arrays
-if impedance_data:
-    x = [item[0] for item in impedance_data]
-    zdat = [item[1] for item in impedance_data]
-    xx = array(x)
-    zin = array(zdat)
-    yy = 1/zin
-else:
-    print("Error: No impedance data found in file")
-    sys.exit(1)
-
-if phase_data_raw:
-    phase_freq = array([item[0] for item in phase_data_raw])
-    phase_data = array([item[1] for item in phase_data_raw])
-    print(f"Found {len(phase_data)} phase data points")
-else:
-    print("Warning: No phase data found in file")
-
-# Locate Ymax, Ymin, and initial guesses for fr and fa:
-zmin = min(zdat)
-zminidx = zdat.index(zmin)
-zmax = max(zdat)
-zmaxidx = zdat.index(zmax)
-Ymax = max(yy)
-Ymin = min(yy)
-fr = x[zminidx]
-fa = x[zmaxidx]
-
-# Estimate initial parameter values:
-C0i = C0_i(Ymin, Ymax, fr, fa)
-R1i = R1_i(Ymin, Ymax, fr, fa, C0_i(Ymin, Ymax, fr, fa))
-L1i = L1_i(fr, fa, C0_i(Ymin, Ymax, fr, fa))
-C1i = C1_i(fr, fa, C0_i(Ymin, Ymax, fr, fa))
-Qi = 1/(R1i*np.sqrt(C1i/L1i))
-
-# Create initial guess array:
-z0 = [C0i, R1i, L1i, C1i]
-
-# Find the best values:
-output = leastsq(rez, z0, args=(yy, xx), full_output=1)
-
-C0 = output[0][0]
-R1 = output[0][1]
-L1 = output[0][2]
-C1 = output[0][3]
-Q = 1 / (R1 * np.sqrt(C1 / L1))
-fr = 1 / np.sqrt(L1 * C1) / 0.2e1 / np.pi
-fa = np.sqrt((C0 + C1) / C0 / C1 / L1) / np.pi / 0.2e1
-
-# Put the optimal values in a list:
-coeffs = [C0, R1, L1, C1]
-
-# Calculate RMS error:
-var = np.inner(output[2]['fvec'],output[2]['fvec'])
-rmserr = sqrt(var/(len(output[2]['fvec'])-4))
-k31 = np.sqrt((fa**2-fr**2)/fa**2)
-
-# Print the results to stdout:
-py3print()
-
-# Calculate plot annotation positions:
-delx = (fa-fr)/10.0
-dely = (Ymax-Ymin)/20.0
-noteymax = 0.65*Ymax
-
-# Add date and time:
-loctime = time.asctime(time.localtime(time.time()))
-print("Date and Time =", loctime, "\n")
-
-# Create the plot
-plt.figure(figsize=(8,7), dpi=res)
-
-# Top subplot: Admittance magnitude
-plt.subplot(211)
-plt.plot(xx, y(xx, coeffs), 'r-', label='model', linewidth=2)
-plt.plot(xx, yy, 'go', label='data', markersize=4)
-plt.errorbar(xx, y(xx, coeffs), yerr=rmserr, linestyle='None', alpha=0.5)
-
-# Annotations
-plt.annotate(r"$f_r$ = "+'{: 3.3e}'.format(fr),xy=(fa-delx,noteymax))
-plt.annotate(r"$f_a$ = "+'{: 3.3e}'.format(fa),xy=(fa-delx,noteymax-1.4*dely))
-plt.annotate(r"$C_0$ = "+'{: 3.3e}'.format(C0),xy=(fa-delx,noteymax-2.8*dely))
-plt.annotate(r"$R_1$ = "+'{: 3.3e}'.format(R1),xy=(fa-delx,noteymax-4.4*dely))
-plt.annotate(r"$L_1$ = "+'{: 3.3e}'.format(L1),xy=(fa-delx,noteymax-5.8*dely))
-plt.annotate(r"$C_1$ = "+'{: 3.3e}'.format(C1),xy=(fa-delx,noteymax-7.2*dely))
-plt.annotate('Q = '+'{: 3.3e}'.format(Q),xy=(fa-delx,noteymax-8.6*dely))
-plt.annotate('RMS Dev. = '+'{: 3.2e}'.format(rmserr),xy=(fa-delx,noteymax-10*dely))
-plt.annotate('$k_{31}$ = '+'{: 3.2e}'.format(k31),xy=(fa-delx,noteymax-11.4*dely))
-
-plt.suptitle('Data File = '+infile+':  '+loctime)
-legend = plt.legend(loc='upper right', shadow=True, fontsize='large')
-plt.xlabel(r"$f$ (Hz)")
-plt.ylabel(r"$\mathscr{Y}$ (A/V)")
-plt.grid(True)
-legend.get_frame().set_facecolor('#00FFCC')
-
-# Bottom subplot: Phase data comparison (if available)
-plt.subplot(212)
-plt.plot(xx, phi(xx, C0, R1, L1, C1), 'r-', label='phase model', linewidth=2)
-if len(phase_data) > 0:
-    plt.plot(phase_freq, phase_data, 'bo', label='phase data', markersize=4)
-plt.xlabel(r"$f$ (Hz)")
-plt.grid(True) 
-plt.ylabel(r"$\phi$ (degrees)")
-legend = plt.legend(loc='upper right', shadow=True, fontsize='large')
-legend.get_frame().set_facecolor('#00FFCC')
-
-# Save the plot
-plt.tight_layout()
-if plottype=='PNG' or plottype=='':
-    plotname = infile.split('.')[0]+"trmodel"+loctime.replace(':','-')+'.PNG'
-    plt.savefig(plotname, format='png', dpi=res)
-else:
-    plotname = infile.split('.')[0]+"trmodel"+loctime.replace(':','-')+'.eps'
-    plt.savefig(plotname, format='eps', dpi=res)
-
-print(f"Plot saved as: {plotname}")
-plt.show()
+if __name__ == '__main__':
+    exit(main())
