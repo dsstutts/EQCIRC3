@@ -62,6 +62,7 @@
     (7) Q (the series R1L1C1 resonance
     quality factor = 1/2zeta)
     (8) RMS Deviation
+    (9) k_31
     
     A graph of the data and model is also produced.
     
