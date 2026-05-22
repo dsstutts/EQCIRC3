@@ -345,8 +345,18 @@ coeffs = [C0, R1, L1, C1]
 # Calculate RMS error:
 var = np.inner(output[2]['fvec'],output[2]['fvec'])
 rmserr = sqrt(var/(len(output[2]['fvec'])-4))
-k31 = np.sqrt((fa**2-fr**2)/fa**2)
+keff = np.sqrt((fa**2-fr**2)/fa**2)
+import numpy as np
 
+def calculate_k31(fr, fa):
+    # Calculate the frequency ratio argument in radians
+    theta = (np.pi * fa) / (2 * fr)
+    
+    # Precise IEEE standard formula for k31 squared
+    k31_sq = theta / (theta - np.tan(theta))
+    
+    return np.sqrt(k31_sq)
+k31 = calculate_k31(fr, fa)
 # Print the results to stdout:
 py3print()
 
